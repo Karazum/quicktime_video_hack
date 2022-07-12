@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package gstadapter
@@ -64,8 +65,8 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	queue3 := gst.ElementFactoryMake("queue", "queue_13")
 	checkElem(queue3, "queue_13")
 
-	sink := gst.ElementFactoryMake("xvimagesink", "xvimagesink_01")
-	checkElem(sink, "xvimagesink01")
+	sink := gst.ElementFactoryMake("ximagesink", "ximagesink_01")
+	checkElem(sink, "ximagesink01")
 	sink.SetProperty("sync", false) //see gst_adapter_macos comment
 
 	pl.Add(asrc.AsElement(), queue1, h264parse, avdec_h264, queue2, videoconvert, queue3, sink)
