@@ -3,7 +3,14 @@
 
 package gstadapter
 
-import "github.com/danielpaulus/gst"
+import (
+	"fmt"
+	"github.com/danielpaulus/gst"
+	"github.com/lijo-jose/glib"
+	"os/exec"
+	"regexp"
+	"strconv"
+)
 
 func setupLivePlayAudio(pl *gst.Pipeline) {
 
@@ -62,21 +69,48 @@ func setUpVideoPipeline(pl *gst.Pipeline) *gst.AppSrc {
 	videoconvert := gst.ElementFactoryMake("videoconvert", "videoconvert_01")
 	checkElem(videoconvert, "videoconvert_01")
 
+	videoscale := gst.ElementFactoryMake("videoscale", "videoscale_01")
+	checkElem(videoscale, "videoscale_01")
+
+	//video := gst.ElementFactoryMake("video/x-raw, width=500, height=1000", "video")
+	//checkElem(video, "video")
+
 	queue3 := gst.ElementFactoryMake("queue", "queue_13")
 	checkElem(queue3, "queue_13")
 
 	sink := gst.ElementFactoryMake("ximagesink", "ximagesink_01")
 	checkElem(sink, "ximagesink01")
+	//sink.SetProperty("display", "localhost:201")
 	sink.SetProperty("sync", false) //see gst_adapter_macos comment
 
-	pl.Add(asrc.AsElement(), queue1, h264parse, avdec_h264, queue2, videoconvert, queue3, sink)
+	pl.Add(asrc.AsElement(), queue1, h264parse, avdec_h264, queue2, videoconvert, videoscale, queue3, sink)
 
 	asrc.Link(queue1)
 	queue1.Link(h264parse)
 	h264parse.Link(avdec_h264)
 	avdec_h264.Link(queue2)
 	queue2.Link(videoconvert)
-	videoconvert.Link(queue3)
+	videoconvert.Link(videoscale)
+	//videoscale.Link(queue3)
+	//video.Link(queue3)
 	queue3.Link(sink)
+	out, err := exec.Command("xdpyinfo").Output()
+	if err != nil {
+		fmt.Printf("%s", err)
+	}
+	outputString := string(out)
+	r, _ := regexp.Compile("dimensions: *(\\d+)x(\\d+)")
+	res := r.FindAllStringSubmatch(outputString, -1)
+	width, _ := strconv.Atoi(res[0][1])
+	height, _ := strconv.Atoi(res[0][2])
+
+	filter := gst.NewCapsSimple(
+		"video/x-raw",
+		glib.Params{
+			"width":  int32(width),
+			"height": int32(height),
+		},
+	)
+	videoscale.LinkFiltered(queue3, filter)
 	return asrc
 }
