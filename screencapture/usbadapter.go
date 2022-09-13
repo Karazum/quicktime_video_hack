@@ -3,9 +3,8 @@ package screencapture
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
-
 	"github.com/pkg/errors"
+	"io"
 
 	"github.com/google/gousb"
 	log "github.com/sirupsen/logrus"
@@ -50,9 +49,15 @@ func (usbAdapter *UsbAdapter) StartReading(device IosDevice, receiver UsbDataRec
 	confignum, _ := usbDevice.ActiveConfigNum()
 	log.Debugf("Config is active: %d, QT config is: %d", confignum, device.QTConfigIndex)
 
+	err = usbDevice.SetAutoDetach(true)
+	if err != nil {
+		return errors.New(fmt.Sprint(err))
+	}
+
 	config, err := usbDevice.Config(device.QTConfigIndex)
 	if err != nil {
-		return errors.New("Could not retrieve config")
+		return errors.New(fmt.Sprint(err))
+		// return errors.New("Could not retrieve config")
 	}
 
 	log.Debugf("QT Config is active: %s", config.String())
